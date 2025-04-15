@@ -304,6 +304,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Development helper route - Make user admin
+  // This would be removed in production
+  app.post("/api/dev/make-admin", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: "User ID is required"
+        });
+      }
+      
+      const user = await storage.updateUser(Number(id), { role: "admin" });
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found"
+        });
+      }
+      
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(200).json({
+        success: true,
+        user: userWithoutPassword,
+        message: "User role updated to admin"
+      });
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({
+        success: false,
+        error: "An error occurred while updating user role"
+      });
+    }
+  });
 
   const httpServer = createServer(app);
 

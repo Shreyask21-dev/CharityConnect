@@ -14,10 +14,17 @@ import { Loader2 } from "lucide-react";
 
 // Create schema for registration form with terms acceptance
 const extendedRegisterSchema = z.object({
-  ...registerSchema.shape,
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  mobile: z.string().min(10, "Mobile number must be at least 10 digits"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters"),
   termsAccepted: z.boolean().refine(val => val === true, {
     message: "You must accept the terms and conditions"
   })
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type ExtendedRegisterForm = z.infer<typeof extendedRegisterSchema>;
@@ -80,7 +87,7 @@ export default function AuthPage() {
 
   // Handle user registration submission
   const onRegisterSubmit = registerForm.handleSubmit((data) => {
-    const { termsAccepted, ...registrationData } = data;
+    const { termsAccepted, confirmPassword, ...registrationData } = data;
     registerMutation.mutate(registrationData);
   });
 
