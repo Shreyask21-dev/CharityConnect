@@ -154,36 +154,85 @@ export default function UserDashboard() {
 
   // Handler for exporting donation history
   const handleExportData = () => {
-    toast({
-      title: "Export Started",
-      description: "Your donation history is being exported to Excel",
-    });
-    
-    // In a real implementation, this would trigger an API call to generate and download the Excel file
-    // For now, just show a toast notification
-    setTimeout(() => {
+    const donations = donationsData?.donations || [];
+    if (donations.length === 0) {
       toast({
-        title: "Export Complete",
-        description: "Your donation history has been exported successfully",
+        title: "No Data",
+        description: "No donations available to export",
       });
-    }, 2000);
+      return;
+    }
+
+    const header = ['Date', 'Amount', 'Purpose', 'Status', 'Payment ID'];
+    const csvContent = [
+      header.join(','),
+      ...donations.map(d => [
+        new Date(d.createdAt).toLocaleDateString(),
+        d.amount,
+        d.purpose,
+        d.status,
+        d.paymentId || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'donations.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   // Handler for downloading invoice
   const handleDownloadInvoice = (donationId: number) => {
-    toast({
-      title: "Invoice Download Started",
-      description: "Your donation invoice is being prepared for download",
-    });
-    
-    // In a real implementation, this would trigger an API call to generate and download the invoice
-    // For now, just show a toast notification
-    setTimeout(() => {
+    const donation = donationsData?.donations.find(d => d.id === donationId);
+    if (!donation) {
       toast({
-        title: "Invoice Ready",
-        description: "Your donation invoice has been downloaded successfully",
+        title: "Error",
+        description: "Donation not found",
       });
-    }, 1500);
+      return;
+    }
+
+    const invoiceContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; }
+          .invoice { max-width: 800px; margin: 0 auto; padding: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .details { margin: 20px 0; }
+          .amount { font-size: 24px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="invoice">
+          <div class="header">
+            <h1>Donation Receipt</h1>
+            <p>Date: ${new Date(donation.createdAt).toLocaleDateString()}</p>
+          </div>
+          <div class="details">
+            <p><strong>Donor Name:</strong> ${donation.name}</p>
+            <p><strong>Purpose:</strong> ${donation.purpose}</p>
+            <p><strong>Payment ID:</strong> ${donation.paymentId}</p>
+          </div>
+          <div class="amount">
+            <p><strong>Amount:</strong> ₹${donation.amount}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([invoiceContent], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `donation-receipt-${donationId}.html`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   // Handler for logout
