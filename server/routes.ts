@@ -34,7 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the donation in storage
-      const donation = await storage.createDonation(donationData, userId);
+      const donation = await storage.createDonation(donationData, userId || undefined);
       
       // In a real implementation, this would trigger the payment gateway
       // For now, we'll just return the donation data with a success status
