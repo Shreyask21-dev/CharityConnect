@@ -24,14 +24,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let userId = null;
       
       // Check if the mobile number is associated with a registered user
-      const existingUser = await storage.getUserByMobile(donationData.mobile);
+      let existingUser = await storage.getUserByMobile(donationData.mobile);
       
-      if (existingUser) {
-        userId = existingUser.id;
-      } else if (req.isAuthenticated()) {
-        // If the user is logged in, associate the donation with their account
-        userId = (req.user as User).id;
+      if (!existingUser) {
+        // Create new user from donation data
+        existingUser = await storage.createUser({
+          name: donationData.name,
+          mobile: donationData.mobile,
+          email: donationData.email,
+          role: "user",
+          documentType: donationData.documentType,
+          documentNumber: donationData.documentNumber,
+          address: donationData.address,
+          street: donationData.street,
+          city: donationData.city,
+          state: donationData.state,
+          pincode: donationData.pincode,
+          createdAt: new Date().toISOString()
+        });
+        
+        // Auto-login the new user
+        await new Promise((resolve, reject) => {
+          req.login(existingUser, (err) => {
+            if (err) reject(err);
+            resolve(null);
+          });
+        });
       }
+      
+      userId = existingUser.id;
       
       // Create the donation in storage
       const donation = await storage.createDonation(donationData, userId || undefined);

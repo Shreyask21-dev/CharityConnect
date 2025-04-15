@@ -7,7 +7,6 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   mobile: text("mobile").notNull().unique(),
   email: text("email").notNull(),
-  password: text("password").notNull(),
   role: text("role").notNull().default("user"), // 'user' or 'admin'
   documentType: text("document_type"),
   documentNumber: text("document_number"),
