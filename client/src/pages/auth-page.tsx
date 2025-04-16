@@ -34,12 +34,34 @@ export default function AuthPage() {
   const { user, loginMutation, adminLoginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
 
+  // User login form
+  const loginForm = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      mobile: "",
+      password: "",
+    },
+  });
+
   // Admin login form
   const adminLoginForm = useForm({
     resolver: zodResolver(adminLoginSchema),
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+
+  // User registration form
+  const registerForm = useForm<ExtendedRegisterForm>({
+    resolver: zodResolver(extendedRegisterSchema),
+    defaultValues: {
+      name: "",
+      mobile: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      termsAccepted: false,
     },
   });
 
@@ -53,9 +75,20 @@ export default function AuthPage() {
     return null;
   }
 
+  // Handle user login submission
+  const onUserLoginSubmit = loginForm.handleSubmit((data) => {
+    loginMutation.mutate(data);
+  });
+
   // Handle admin login submission
   const onAdminLoginSubmit = adminLoginForm.handleSubmit((data) => {
     adminLoginMutation.mutate(data);
+  });
+
+  // Handle user registration submission
+  const onRegisterSubmit = registerForm.handleSubmit((data) => {
+    const { termsAccepted, confirmPassword, ...registrationData } = data;
+    registerMutation.mutate(registrationData);
   });
 
   return (
@@ -102,55 +135,68 @@ export default function AuthPage() {
 
         {/* Auth Forms */}
         <div className="w-full md:w-1/2 p-8 md:p-12">
-          <Card className="border-0 shadow-none">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-2xl font-bold text-gray-800">Admin Login</CardTitle>
-              <CardDescription>Enter your credentials to access the admin dashboard</CardDescription>
-            </CardHeader>
-            <CardContent className="px-0 space-y-4">
-              <Form {...adminLoginForm}>
-                <form onSubmit={onAdminLoginSubmit} className="space-y-4">
-                  <FormField
-                    control={adminLoginForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="Enter admin email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={adminLoginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Enter admin password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button 
-                    type="submit" 
-                    variant="outline" 
-                    className="w-full"
-                    disabled={adminLoginMutation.isPending}
-                  >
-                    {adminLoginMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    Admin Login
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+          <div>
+            <Card className="border-0 shadow-none">
+              <CardHeader className="px-0 pt-0">
+                <CardTitle className="text-2xl font-bold text-gray-800">Admin Login</CardTitle>
+                <CardDescription>Enter your credentials to access the admin dashboard</CardDescription>
+              </CardHeader>
+              <CardContent className="px-0 space-y-4">
+              <Card className="border-0 shadow-none">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle className="text-2xl font-bold text-gray-800">Login to Your Account</CardTitle>
+                  <CardDescription>
+                    Enter your credentials to access your account and donation history
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-0 space-y-4">
+                  {/* Admin Login Form */}
+                  <div>
+                    <Form {...adminLoginForm}>
+                      <form onSubmit={onAdminLoginSubmit} className="space-y-4">
+                        <FormField
+                          control={adminLoginForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="Enter admin email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={adminLoginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="Enter admin password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button 
+                          type="submit" 
+                          variant="outline" 
+                          className="w-full"
+                          disabled={adminLoginMutation.isPending}
+                        >
+                          {adminLoginMutation.isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          Admin Login
+                        </Button>
+                      </form>
+                    </Form>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
         </div>
       </div>
     </div>
