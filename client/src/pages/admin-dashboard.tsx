@@ -200,19 +200,63 @@ export default function AdminDashboard() {
 
   // Handler for exporting data
   const handleExportData = () => {
+    // Convert data to CSV format
+    const exportToCsv = (data: any[], filename: string) => {
+      if (data.length === 0) return;
+      
+      const headers = Object.keys(data[0]);
+      const csvContent = [
+        headers.join(','),
+        ...data.map(row => 
+          headers.map(header => {
+            let cell = row[header]?.toString() ?? '';
+            // Handle commas and quotes in the content
+            if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+              cell = `"${cell.replace(/"/g, '""')}"`;
+            }
+            return cell;
+          }).join(',')
+        )
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    if (activeTab === 'donors') {
+      // Export donors data
+      const donorsExportData = filteredDonors.map(donor => ({
+        Name: donor.name,
+        Mobile: donor.mobile,
+        Email: donor.email,
+        'Total Donated': `₹${donor.totalDonated}`,
+        'Transaction Count': donor.transactionCount
+      }));
+      exportToCsv(donorsExportData, 'donors');
+    } else if (activeTab === 'donations') {
+      // Export donations data
+      const donationsExportData = filteredDonations.map(donation => ({
+        Date: new Date(donation.createdAt).toLocaleDateString(),
+        Name: donation.name,
+        Mobile: donation.mobile,
+        Email: donation.email,
+        Amount: `₹${donation.amount}`,
+        Purpose: donation.purpose,
+        Status: donation.status,
+        'Payment ID': donation.paymentId || '-'
+      }));
+      exportToCsv(donationsExportData, 'donations');
+    }
+
     toast({
-      title: "Export Started",
-      description: `${activeTab === "donors" ? "Donors" : "Donations"} data is being exported to Excel`,
+      title: "Export Complete",
+      description: `${activeTab === "donors" ? "Donors" : "Donations"} data has been exported successfully`,
     });
-    
-    // In a real implementation, this would trigger an API call to generate and download the Excel file
-    // For now, just show a toast notification
-    setTimeout(() => {
-      toast({
-        title: "Export Complete",
-        description: `${activeTab === "donors" ? "Donors" : "Donations"} data has been exported successfully`,
-      });
-    }, 2000);
   };
 
   // Handler for logout
