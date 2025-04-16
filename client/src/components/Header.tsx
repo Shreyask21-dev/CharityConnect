@@ -54,13 +54,7 @@ export default function Header({
           <Link href="/auth">
             <Button variant="ghost" className="flex items-center">
               <LogIn className="h-4 w-4 mr-2" />
-              Login
-            </Button>
-          </Link>
-          <Link href="/auth">
-            <Button variant="ghost" className="flex items-center">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Register
+              Admin Login
             </Button>
           </Link>
         </div>
