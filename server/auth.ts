@@ -163,4 +163,31 @@ export function setupAuth(app: Express) {
 
     next();
   });
+
+  app.post("/api/admin/login", (req, res, next) => {
+    const { email, password } = req.body;
+    if (email === "admin@example.com" && password === "admin123") {
+      const adminUser = {
+        id: 1,
+        name: "Admin",
+        email: "admin@example.com",
+        role: "admin",
+        mobile: "",
+        documentType: null,
+        documentNumber: null,
+        address: null,
+        street: null,
+        city: null,
+        state: null,
+        pincode: null,
+        createdAt: new Date().toISOString()
+      };
+      req.login(adminUser, (err) => {
+        if (err) return next(err);
+        res.status(200).json(adminUser);
+      });
+    } else {
+      res.status(401).json({ message: "Invalid admin credentials" });
+    }
+  });
 }
