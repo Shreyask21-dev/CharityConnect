@@ -64,6 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login successful",
         description: "Welcome back!",
       });
+      // Redirect based on user role
+      window.location.href = userData.role === 'admin' ? '/admin-dashboard' : '/user-dashboard';
     },
     onError: (error: Error) => {
       toast({
