@@ -16,6 +16,8 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
+export const storage = new MySQLStorage();
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -40,6 +42,75 @@ export class MySQLStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
     return rows[0] as User | undefined;
+  }
+
+  async getUserByMobile(mobile: string): Promise<User | undefined> {
+    const [rows] = await pool.query('SELECT * FROM users WHERE mobile = ?', [mobile]);
+    return rows[0] as User | undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    return rows[0] as User | undefined;
+  }
+
+  async createUser(user: Partial<User>): Promise<User> {
+    const [result] = await pool.query(
+      'INSERT INTO users (name, mobile, email, role, document_type, document_number, address, street, city, state, pincode, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [user.name, user.mobile, user.email, user.role || 'user', user.documentType, user.documentNumber, user.address, user.street, user.city, user.state, user.pincode, new Date().toISOString()]
+    );
+    return { ...user, id: result.insertId } as User;
+  }
+
+  async updateUser(id: number, user: Partial<User>): Promise<User | undefined> {
+    const [result] = await pool.query(
+      'UPDATE users SET ? WHERE id = ?',
+      [user, id]
+    );
+    if (result.affectedRows === 0) return undefined;
+    return this.getUser(id);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const [rows] = await pool.query('SELECT * FROM users');
+    return rows as User[];
+  }
+
+  async getDonation(id: number): Promise<Donation | undefined> {
+    const [rows] = await pool.query('SELECT * FROM donations WHERE id = ?', [id]);
+    return rows[0] as Donation | undefined;
+  }
+
+  async getDonationByMobile(mobile: string): Promise<Donation[]> {
+    const [rows] = await pool.query('SELECT * FROM donations WHERE mobile = ?', [mobile]);
+    return rows as Donation[];
+  }
+
+  async getDonationsByUserId(userId: number): Promise<Donation[]> {
+    const [rows] = await pool.query('SELECT * FROM donations WHERE user_id = ?', [userId]);
+    return rows as Donation[];
+  }
+
+  async getAllDonations(): Promise<Donation[]> {
+    const [rows] = await pool.query('SELECT * FROM donations');
+    return rows as Donation[];
+  }
+
+  async updateDonationStatus(id: number, status: string, paymentId?: string): Promise<Donation | undefined> {
+    const [result] = await pool.query(
+      'UPDATE donations SET status = ?, payment_id = ? WHERE id = ?',
+      [status, paymentId, id]
+    );
+    if (result.affectedRows === 0) return undefined;
+    return this.getDonation(id);
+  }
+
+  async getDonationsByDateRange(startDate: string, endDate: string): Promise<Donation[]> {
+    const [rows] = await pool.query(
+      'SELECT * FROM donations WHERE created_at BETWEEN ? AND ?',
+      [startDate, endDate]
+    );
+    return rows as Donation[];
   }
 
   async getUserByMobile(mobile: string): Promise<User | undefined> {
