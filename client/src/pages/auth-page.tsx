@@ -163,19 +163,9 @@ export default function AuthPage() {
                             <FormControl>
                               <Input placeholder="Enter your registered mobile number" {...field} />
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Enter your password" {...field} />
-                            </FormControl>
+                            <FormDescription>
+                              Enter the mobile number you used for donation
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}

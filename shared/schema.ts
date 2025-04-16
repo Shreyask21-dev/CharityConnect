@@ -46,7 +46,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const loginSchema = z.object({
   mobile: z.string().min(10, "Mobile number must be at least 10 digits"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export const adminLoginSchema = z.object({

@@ -45,7 +45,7 @@ export class MemStorage implements IStorage {
       name: "Admin User",
       mobile: "9999999999",
       email: "admin@example.com",
-      password: "$2b$10$ZG9uJ3QgY2hhbmdlIHRoaXM=", // Don't change this (hashed version of "admin123")
+      password: "admin123", // Plain text for demo
       role: "admin",
       documentType: null,
       documentNumber: null,

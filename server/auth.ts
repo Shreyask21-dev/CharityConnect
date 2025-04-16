@@ -40,12 +40,12 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use('user-login', new LocalStrategy(
-    { usernameField: 'mobile' },
+    { usernameField: 'mobile', passwordField: 'mobile' }, // Use mobile as both username and password
     async (mobile, _, done) => {
       try {
         const user = await storage.getUserByMobile(mobile);
         if (!user) {
-          return done(null, false, { message: 'User not found' });
+          return done(null, false, { message: 'User not found. Please make a donation first.' });
         }
         return done(null, user);
       } catch (error) {
