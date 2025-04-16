@@ -3,9 +3,18 @@ import {
   donations, type Donation, type InsertDonation,
   type TaxDetails
 } from "@shared/schema";
+import mysql from 'mysql2/promise';
 
-// modify the interface with any CRUD methods
-// you might need
+// MySQL connection pool
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 export interface IStorage {
   // User methods
@@ -16,7 +25,7 @@ export interface IStorage {
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   updateTaxDetails(id: number, taxDetails: TaxDetails): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
-  
+
   // Donation methods
   createDonation(donation: InsertDonation, userId?: number): Promise<Donation>;
   getDonation(id: number): Promise<Donation | undefined>;
@@ -27,163 +36,99 @@ export interface IStorage {
   getDonationsByDateRange(startDate: string, endDate: string): Promise<Donation[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private donationEntries: Map<number, Donation>;
-  private currentUserId: number;
-  private currentDonationId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.donationEntries = new Map();
-    this.currentUserId = 1;
-    this.currentDonationId = 1;
-    
-    // Create admin user
-    this.users.set(this.currentUserId, {
-      id: this.currentUserId,
-      name: "Admin User",
-      mobile: "9999999999",
-      email: "admin@example.com",
-      password: "admin123", // Plain text for demo
-      role: "admin",
-      documentType: null,
-      documentNumber: null,
-      address: null,
-      street: null,
-      city: null,
-      state: null,
-      pincode: null,
-      createdAt: new Date().toISOString(),
-    });
-    this.currentUserId++;
-  }
-
+export class MySQLStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+    return rows[0] as User | undefined;
   }
 
   async getUserByMobile(mobile: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.mobile === mobile,
-    );
+    const [rows] = await pool.query('SELECT * FROM users WHERE mobile = ?', [mobile]);
+    return rows[0] as User | undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    return rows[0] as User | undefined;
   }
 
   async createUser(userData: Partial<User>): Promise<User> {
-    const id = this.currentUserId++;
     const now = new Date().toISOString();
-    
-    const user: User = {
-      id,
-      name: userData.name || "",
-      mobile: userData.mobile || "",
-      email: userData.email || "",
-      password: userData.password || "",
-      role: userData.role || "user",
-      documentType: userData.documentType || null,
-      documentNumber: userData.documentNumber || null,
-      address: userData.address || null,
-      street: userData.street || null,
-      city: userData.city || null,
-      state: userData.state || null,
-      pincode: userData.pincode || null,
-      createdAt: now,
-    };
-    
-    this.users.set(id, user);
-    return user;
+    const [result] = await pool.query(
+      'INSERT INTO users (name, mobile, email, role, document_type, document_number, address, street, city, state, pincode, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userData.name, userData.mobile, userData.email, userData.role || 'user', userData.documentType, userData.documentNumber, userData.address, userData.street, userData.city, userData.state, userData.pincode, now]
+    );
+    return { ...userData, id: result.insertId, createdAt: now } as User;
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...userData };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [result] = await pool.query(
+      'UPDATE users SET ? WHERE id = ?',
+      [userData, id]
+    );
+    if (result.affectedRows === 0) return undefined;
+    return this.getUser(id);
   }
 
   async updateTaxDetails(id: number, taxDetails: TaxDetails): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { 
-      ...user, 
-      documentType: taxDetails.documentType,
-      documentNumber: taxDetails.documentNumber
-    };
-    
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [result] = await pool.query(
+      'UPDATE users SET document_type = ?, document_number = ? WHERE id = ?',
+      [taxDetails.documentType, taxDetails.documentNumber, id]
+    );
+    if (result.affectedRows === 0) return undefined;
+    return this.getUser(id);
   }
 
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    const [rows] = await pool.query('SELECT * FROM users');
+    return rows as User[];
   }
 
-  async createDonation(insertDonation: InsertDonation, userId?: number): Promise<Donation> {
-    const id = this.currentDonationId++;
-    const donation: Donation = { 
-      ...insertDonation, 
-      id,
-      userId: userId || null,
-      paymentId: null, 
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    this.donationEntries.set(id, donation);
-    return donation;
+  async createDonation(donationData: InsertDonation, userId?: number): Promise<Donation> {
+    const now = new Date().toISOString();
+    const [result] = await pool.query(
+      'INSERT INTO donations (user_id, name, mobile, email, amount, purpose, address, street, city, state, pincode, document_type, document_number, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, donationData.name, donationData.mobile, donationData.email, donationData.amount, donationData.purpose, donationData.address, donationData.street, donationData.city, donationData.state, donationData.pincode, donationData.documentType, donationData.documentNumber, 'pending', now]
+    );
+    return { ...donationData, id: result.insertId, userId, status: 'pending', createdAt: now } as Donation;
   }
 
   async getDonation(id: number): Promise<Donation | undefined> {
-    return this.donationEntries.get(id);
+    const [rows] = await pool.query('SELECT * FROM donations WHERE id = ?', [id]);
+    return rows[0] as Donation | undefined;
   }
 
   async getDonationByMobile(mobile: string): Promise<Donation[]> {
-    return Array.from(this.donationEntries.values()).filter(
-      (donation) => donation.mobile === mobile
-    );
+    const [rows] = await pool.query('SELECT * FROM donations WHERE mobile = ?', [mobile]);
+    return rows as Donation[];
   }
 
   async getDonationsByUserId(userId: number): Promise<Donation[]> {
-    return Array.from(this.donationEntries.values()).filter(
-      (donation) => donation.userId === userId
-    );
+    const [rows] = await pool.query('SELECT * FROM donations WHERE user_id = ?', [userId]);
+    return rows as Donation[];
   }
 
   async updateDonationStatus(id: number, status: string, paymentId?: string): Promise<Donation | undefined> {
-    const donation = this.donationEntries.get(id);
-    if (donation) {
-      const updatedDonation = { 
-        ...donation, 
-        status, 
-        paymentId: paymentId || donation.paymentId 
-      };
-      this.donationEntries.set(id, updatedDonation);
-      return updatedDonation;
-    }
-    return undefined;
+    const [result] = await pool.query(
+      'UPDATE donations SET status = ?, payment_id = ? WHERE id = ?',
+      [status, paymentId, id]
+    );
+    if (result.affectedRows === 0) return undefined;
+    return this.getDonation(id);
   }
 
   async getAllDonations(): Promise<Donation[]> {
-    return Array.from(this.donationEntries.values());
+    const [rows] = await pool.query('SELECT * FROM donations');
+    return rows as Donation[];
   }
 
   async getDonationsByDateRange(startDate: string, endDate: string): Promise<Donation[]> {
-    const start = new Date(startDate).getTime();
-    const end = new Date(endDate).getTime();
-    
-    return Array.from(this.donationEntries.values()).filter(donation => {
-      const donationDate = new Date(donation.createdAt).getTime();
-      return donationDate >= start && donationDate <= end;
-    });
+    const [rows] = await pool.query(
+      'SELECT * FROM donations WHERE created_at BETWEEN ? AND ?',
+      [startDate, endDate]
+    );
+    return rows as Donation[];
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new MySQLStorage();
