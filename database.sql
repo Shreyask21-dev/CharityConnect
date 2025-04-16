@@ -37,3 +37,7 @@ CREATE TABLE IF NOT EXISTS donations (
   created_at VARCHAR(30) NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+-- Create admin user
+INSERT INTO users (name, mobile, email, role, created_at)
+VALUES ('Admin', 'admin', 'admin@example.com', 'admin', NOW());
