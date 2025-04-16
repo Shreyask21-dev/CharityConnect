@@ -16,8 +16,6 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-export const storage = new MySQLStorage();
-
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
